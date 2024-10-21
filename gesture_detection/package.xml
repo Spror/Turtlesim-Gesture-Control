@@ -3,7 +3,7 @@
 <package format="3">
   <name>gesture_detection</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Gesture detecion node - recognize gestures made by hand</description>
   <maintainer email="wiktorspringer27@gmail.com">wiktor</maintainer>
   <license>Apache-2.0</license>
 
