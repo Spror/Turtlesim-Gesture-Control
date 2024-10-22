@@ -1,10 +1,6 @@
 #include "CameraControl.hpp"
 
-CameraControl::CameraControl(int index) : index_(index) {
-    camera_.open(index_);
-}
-
-bool CameraControl::isOpened() {
+bool CameraControl::isOpened() const {
     return camera_.isOpened();
 }
 
