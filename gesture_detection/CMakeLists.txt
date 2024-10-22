@@ -19,6 +19,9 @@ find_package(OpenCV REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+# Include directory
+include_directories(include/gesture_detection)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -31,8 +34,15 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(gesturedetection src/gesture_detection.cpp)
+add_executable(gesturedetection src/gesture_detection.cpp src/CameraControl.cpp)
+
 ament_target_dependencies(gesturedetection rclcpp OpenCV)
+
+# Install header files
+install(
+  DIRECTORY include/
+  DESTINATION include/
+)
 
 install(TARGETS
   gesturedetection
