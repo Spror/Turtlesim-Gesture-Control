@@ -11,4 +11,6 @@ public:
 private:
     cv::Scalar lower_bound_;
     cv::Scalar upper_bound_;
+
+    cv::Mat imageProcess(const cv::Mat& frame);
 };
