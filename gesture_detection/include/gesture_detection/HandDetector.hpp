@@ -3,7 +3,8 @@
 
 class HandDetector {
 public:
-    explicit HandDetector(cv::Scalar lower_bound, cv::Scalar upper_bound);
+    explicit HandDetector(cv::Scalar lower_bound, cv::Scalar upper_bound)
+        : lower_bound_(lower_bound), upper_bound_(upper_bound) {};
 
     cv::Mat detectHand(const cv::Mat& frame);
 
