@@ -13,4 +13,5 @@ private:
     cv::Scalar upper_bound_;
 
     cv::Mat imageProcess(const cv::Mat& frame);
+    cv::Mat extractHand(const cv::Mat& frame) const;
 };
