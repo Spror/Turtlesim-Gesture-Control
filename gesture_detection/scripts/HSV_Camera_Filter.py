@@ -42,6 +42,8 @@ if __name__ == "__main__":
     with dpg.window(label="Camera View", no_move=True, pos=(600, 0), no_close=True, no_collapse= True,  no_resize=True):
         dpg.add_image("texture_tag")
 
+    kernel = np.ones((5, 5), np.uint8)  # You can adjust the kernel size
+
     dpg.setup_dearpygui()
     dpg.show_viewport()
 
@@ -56,7 +58,12 @@ if __name__ == "__main__":
         hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         mask = cv2.inRange(hsv_frame, np.array(min_hsv), np.array(max_hsv))
+
+        mask = cv2.erode(mask, kernel, iterations=1)  # Erosion
+        mask = cv2.dilate(mask, kernel, iterations=1)  # Dilatio
+
         filtered_frame = cv2.bitwise_and(frame, frame, mask=mask)
+        
 
         data = np.flip(filtered_frame, 2)
         data = data.ravel()
