@@ -11,7 +11,7 @@ cv::Mat HandDetector::imageProcess(const cv::Mat& frame) {
     cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
 
     cv::Mat skinMask;
-    cv::inRange(hsv, lowerBound, upperBound, skinMask);
+    cv::inRange(hsv, lower_bound_, upper_bound_, skinMask);
 
     cv::erode(skinMask, skinMask, cv::Mat(), cv::Point(-1, -1), 2);
     cv::dilate(skinMask, skinMask, cv::Mat(), cv::Point(-1, -1), 2);
