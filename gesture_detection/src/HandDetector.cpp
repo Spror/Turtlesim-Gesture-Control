@@ -1,5 +1,4 @@
 #include "HandDetector.hpp"
-#include <vector>
 
 cv::Mat HandDetector::detectHand(const cv::Mat& frame) {
     auto skinMask = imageProcess(frame);
@@ -21,7 +20,7 @@ cv::Mat HandDetector::imageProcess(const cv::Mat& frame) {
     return skinMask;
 }
 
-cv::Mat HandDetector::extractHand(const cv::Mat& frame) const {
+cv::Mat HandDetector::extractHand(const cv::Mat& frame) {
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(frame, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -38,6 +37,7 @@ cv::Mat HandDetector::extractHand(const cv::Mat& frame) const {
 
     cv::Mat handMask = cv::Mat::zeros(frame.size(), CV_8UC1);
     if (largest_contour_index != -1) {
+        handContour_ = contours[largest_contour_index];
         cv::drawContours(handMask, contours, largest_contour_index, cv::Scalar(255), cv::FILLED);
     }
 
