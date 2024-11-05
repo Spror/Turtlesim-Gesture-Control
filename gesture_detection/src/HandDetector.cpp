@@ -1,13 +1,11 @@
 #include "HandDetector.hpp"
 
 cv::Mat HandDetector::detectHand(const cv::Mat& frame) {
-    auto skinMask = imageProcess(frame);
-    auto hand = extractHand(skinMask);
-
-    return hand;
+    auto output = imageProcess(frame);
+    return extractHand(output);
 }
 
-cv::Mat HandDetector::imageProcess(const cv::Mat& frame) {
+cv::Mat HandDetector::imageProcess(const cv::Mat& frame) const {
     cv::Mat hsv;
     cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
 
