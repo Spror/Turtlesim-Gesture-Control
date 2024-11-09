@@ -1,15 +1,16 @@
 #include "ConvexityDefectsDetection.hpp"
 #include <limits.h>
+#include <algorithm>
 
 #define FINGER_SIZE_SCALING 0.3
 #define NEIGHBOR_DISTANCE_SCALING 0.1
 
-inline double ConvexityDefectsDetection::pointDistanceOnX(const cv::Point a,
+ double ConvexityDefectsDetection::pointDistanceOnX(const cv::Point a,
                                                           const cv::Point b) const {
     return std::abs(a.x - b.x);
 }
 
-inline double ConvexityDefectsDetection::pointDistance(const cv::Point a, const cv::Point b) const {
+ double ConvexityDefectsDetection::pointDistance(const cv::Point a, const cv::Point b) const {
     return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
 }
 
@@ -22,13 +23,24 @@ cv::Point ConvexityDefectsDetection::calculateMedian(const pointsVec& group) con
     return sum / static_cast<int>(group.size());
 }
 
-closestPointsArr ConvexityDefectsDetection::findClosestOnX(const pointsVec& points,
+closestPointsArr ConvexityDefectsDetection::findClosestOnX(pointsVec points,
                                                            const cv::Point pivot) const {
-    closestPointsArr closestPoints;
+    if (points.size() < 2) {
+        return {};
+    }
 
-    auto maxDistanceX = DBL_MAX;
+    std::partial_sort(points.begin(), points.begin() + 2, points.end(),
+                      [pivot, this](const auto& a, const auto& b) {
+                          auto distance_x_a = pointDistanceOnX(pivot, a);
+                          auto distance_x_b = pointDistanceOnX(pivot, b);
+                          if (distance_x_a != distance_x_b) {
+                              return distance_x_a < distance_x_b;
+                          } else {
+                              return pointDistance(pivot, a) < pointDistance(pivot, b);
+                          }
+                      });
 
-    return closestPoints;
+    return {points[0], points[1]};
 }
 
 Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Mat& output) {
@@ -88,11 +100,12 @@ Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Ma
     far_points = compressPointsByNeighborhood(far_points,
                                               bounding_rectangle.width * NEIGHBOR_DISTANCE_SCALING);
 
+    auto kk = findClosestOnX(far_points, start_points[1]);
     for (const auto& point : start_points) {
         cv::circle(output, point, 2, cv::Scalar(0, 0, 255), -1);
     }
 
-    for (const auto& point : far_points) {
+    for (const auto& point : kk) {
         cv::circle(output, point, 2, cv::Scalar(0, 255, 0), -1);
     }
 
