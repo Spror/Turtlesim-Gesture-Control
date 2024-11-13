@@ -4,14 +4,27 @@
 
 #define FINGER_SIZE_SCALING 0.3
 #define NEIGHBOR_DISTANCE_SCALING 0.1
+#define LIMIT_ANGLE_MAX 60
+#define LIMIT_ANGLE_MIN 5
 
- double ConvexityDefectsDetection::pointDistanceOnX(const cv::Point a,
-                                                          const cv::Point b) const {
+inline double ConvexityDefectsDetection::pointDistanceOnX(const cv::Point& a,
+                                                          const cv::Point& b) const {
     return std::abs(a.x - b.x);
 }
 
- double ConvexityDefectsDetection::pointDistance(const cv::Point a, const cv::Point b) const {
+inline double ConvexityDefectsDetection::pointDistance(const cv::Point& a,
+                                                       const cv::Point& b) const {
     return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
+}
+
+double ConvexityDefectsDetection::findAngle(const cv::Point& point_a,
+                                            const cv::Point& point_b,
+                                            const cv::Point& point_c) const {
+    auto ab = pointDistance(point_a, point_b);
+    auto ac = pointDistance(point_a, point_c);
+    auto bc = pointDistance(point_b, point_c);
+
+    return std::acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)) * 180 / CV_PI;
 }
 
 cv::Point ConvexityDefectsDetection::calculateMedian(const pointsVec& group) const {
@@ -136,4 +149,39 @@ pointsVec ConvexityDefectsDetection::compressPointsByNeighborhood(const pointsVe
     }
 
     return median_points;
+}
+
+bool ConvexityDefectsDetection::isFinger(const cv::Point& tipPoint,
+                                         const cv::Point& defPoint_1,
+                                         const cv::Point& defPoint_2,
+                                         const cv::Point& palmCenter,
+                                         const double minPalmTipDistance) const {
+    // angle should be less than ANGLE_LIMIT_MAX and greater ANGLE_LIMIT_MIN
+    auto angle = findAngle(tipPoint, defPoint_1, defPoint_2);
+    if (angle > LIMIT_ANGLE_MAX || angle < LIMIT_ANGLE_MIN) {
+        return false;
+    }
+
+    // fingertip should not be under the two defects points
+    int diff_y_1 = tipPoint.y - defPoint_1.y;
+    int diff_y_2 = tipPoint.y - defPoint_2.y;
+    if (diff_y_1 > 0 && diff_y_2 > 0) {
+        return false;
+    }
+
+    // Defects point should be above the palm centre point
+    int diff_palm_1 = palmCenter.y-defPoint_1.y;
+    int diff_palm_2 = palmCenter.y-defPoint_2.y;
+    if (diff_palm_1 < 0 && diff_palm_2 < 0) {
+        return false;
+    }
+
+    // Distance from palm to fingertip should be greater than minPalmTipDistance
+    auto palmTip_distance = pointDistance(tipPoint, palmCenter);
+    if (palmTip_distance < minPalmTipDistance) {
+        return false;
+    }
+		
+
+    return true;
 }

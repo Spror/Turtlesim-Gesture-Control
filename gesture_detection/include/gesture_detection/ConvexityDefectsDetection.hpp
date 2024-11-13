@@ -23,9 +23,16 @@ private:
     const rclcpp::Logger logger_;
     std::unique_ptr<HandDetector> handDetecotr_ptr_;
 
-    double pointDistanceOnX(const cv::Point a, const cv::Point b) const;
-    double pointDistance(const cv::Point a, const cv::Point b) const;
+    inline double pointDistanceOnX(const cv::Point& a, const cv::Point& b) const;
+    inline double pointDistance(const cv::Point& a, const cv::Point& b) const;
+
+    double findAngle(const cv::Point& point_a, const cv::Point& point_b, const cv::Point& point_c) const;
     cv::Point calculateMedian(const pointsVec& group) const;
     closestPointsArr findClosestOnX(pointsVec points, const cv::Point pivot) const;
     pointsVec compressPointsByNeighborhood(const pointsVec& points, const double maxDistance) const;
+    bool isFinger(const cv::Point& tipPoint,
+                  const cv::Point& defPoint_1,
+                  const cv::Point& defPoint_2,
+                  const cv::Point& palmCenter,
+                  const double minPalmTipDistance) const;
 };
