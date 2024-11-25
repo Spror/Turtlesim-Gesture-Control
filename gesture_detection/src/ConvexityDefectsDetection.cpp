@@ -107,8 +107,6 @@ Gesture ConvexityDefectsDetection::countFingers(const pointsVec& startPoints,
         }
     }
 
-    std::cout << fingerPoints.size() << "\n";
-
     return toGesture(static_cast<int>(fingerPoints.size()));
 }
 
