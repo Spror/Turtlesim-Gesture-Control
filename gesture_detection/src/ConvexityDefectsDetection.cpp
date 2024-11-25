@@ -1,11 +1,12 @@
 #include "ConvexityDefectsDetection.hpp"
 #include <limits.h>
 #include <algorithm>
+#include <iostream>
+#include <map>
 
 #define FINGER_SIZE_SCALING 0.3
-#define NEIGHBOR_DISTANCE_SCALING 0.1
-#define LIMIT_ANGLE_MAX 60
-#define LIMIT_ANGLE_MIN 5
+#define NEIGHBOR_DISTANCE_SCALING_FAR 0.1
+#define NEIGHBOR_DISTANCE_SCALING_START 0.18
 
 inline double ConvexityDefectsDetection::pointDistanceOnX(const cv::Point& a,
                                                           const cv::Point& b) const {
@@ -17,14 +18,28 @@ inline double ConvexityDefectsDetection::pointDistance(const cv::Point& a,
     return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
 }
 
-double ConvexityDefectsDetection::findAngle(const cv::Point& point_a,
-                                            const cv::Point& point_b,
-                                            const cv::Point& point_c) const {
-    auto ab = pointDistance(point_a, point_b);
-    auto ac = pointDistance(point_a, point_c);
-    auto bc = pointDistance(point_b, point_c);
+Gesture ConvexityDefectsDetection::toGesture(const int fingersNum) const {
+    switch (fingersNum) {
+    case 1:
+        return Gesture::One;
+        break;
+    case 2:
+        return Gesture::Two;
+        break;
+    case 3:
+        return Gesture::Three;
+        break;
+    case 4:
+        return Gesture::Four;
+        break;
+    case 5:
+        return Gesture::Five;
+        break;
 
-    return std::acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc)) * 180 / CV_PI;
+    default:
+        return Gesture::No_gesture;
+        break;
+    }
 }
 
 cv::Point ConvexityDefectsDetection::calculateMedian(const pointsVec& group) const {
@@ -38,35 +53,30 @@ cv::Point ConvexityDefectsDetection::calculateMedian(const pointsVec& group) con
 
 closestPointsArr ConvexityDefectsDetection::findClosestOnX(pointsVec points,
                                                            const cv::Point pivot) const {
-    if (points.size() < 2) {
+    if (points.size() < 3) {
         return {};
     }
 
-    std::partial_sort(points.begin(), points.begin() + 2, points.end(),
-                      [pivot, this](const auto& a, const auto& b) {
-                          auto distance_x_a = pointDistanceOnX(pivot, a);
-                          auto distance_x_b = pointDistanceOnX(pivot, b);
-                          if (distance_x_a != distance_x_b) {
-                              return distance_x_a < distance_x_b;
-                          } else {
-                              return pointDistance(pivot, a) < pointDistance(pivot, b);
-                          }
-                      });
+    std::nth_element(begin(points), begin(points) + 1, end(points),
+                     [pivot, this](const auto& a, const auto& b) {
+                         return pointDistanceOnX(pivot, a) <= pointDistanceOnX(pivot, b);
+                     });
 
     return {points[0], points[1]};
 }
 
 Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Mat& output) {
+    auto gesture_to_return = Gesture::No_gesture;
     if (frame.empty()) {
         RCLCPP_ERROR(logger_, "Input frame is empty.");
-        return Gesture::No_gesture;
+        return gesture_to_return;
     }
 
     output = handDetecotr_ptr_->detectHand(frame);
 
     if (output.empty()) {
         RCLCPP_ERROR(logger_, "Hand extraction failure.");
-        return Gesture::No_gesture;
+        return gesture_to_return;
     }
 
     pointsVec hull;
@@ -82,7 +92,7 @@ Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Ma
     // At least 3 points to find defects
     if (hull_ints.size() < 3) {
         RCLCPP_ERROR(logger_, "Defects finding failure.");
-        return Gesture::No_gesture;
+        return gesture_to_return;
     }
 
     cv::convexityDefects(contour, hull_ints, defects);
@@ -99,38 +109,59 @@ Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Ma
     pointsVec far_points;
 
     for (const auto& defect : defects) {
-        start_points.push_back(contour[defect.val[0]]);
+        if (contour[defect.val[0]].y < center_bounding_rect.y) {
+            start_points.push_back(contour[defect.val[0]]);
+        }
 
-        if (pointDistance(contour[defect.val[2]], center_bounding_rect) <
-            bounding_rectangle.height * FINGER_SIZE_SCALING) {
-            far_points.push_back(contour[defect.val[2]]);
+        auto distance = pointDistance(contour[defect.val[2]], center_bounding_rect);
+
+        if (distance < bounding_rectangle.height * FINGER_SIZE_SCALING) {
+            if (contour[defect.val[2]].y < center_bounding_rect.y) {
+                far_points.push_back(contour[defect.val[2]]);
+            }
         }
     }
 
-    start_points = compressPointsByNeighborhood(
-        start_points, bounding_rectangle.width * NEIGHBOR_DISTANCE_SCALING);
+    reducePointsToMedians(start_points, bounding_rectangle.width * NEIGHBOR_DISTANCE_SCALING_START);
 
-    far_points = compressPointsByNeighborhood(far_points,
-                                              bounding_rectangle.width * NEIGHBOR_DISTANCE_SCALING);
+    reducePointsToMedians(far_points, bounding_rectangle.width * NEIGHBOR_DISTANCE_SCALING_FAR);
 
-    auto kk = findClosestOnX(far_points, start_points[1]);
+    compressPointsByDistance(start_points,
+                             bounding_rectangle.height * NEIGHBOR_DISTANCE_SCALING_FAR);
+
+    if (far_points.size() > 1) {
+        pointsVec fingerPoints;
+
+        for (const auto& point : start_points) {
+            closestPointsArr closestPoints = findClosestOnX(far_points, point);
+            if (isFinger(point, closestPoints[0], closestPoints[1], center_bounding_rect,
+                         bounding_rectangle.height * FINGER_SIZE_SCALING)) {
+                fingerPoints.push_back(point);
+            }
+        }
+
+        gesture_to_return = toGesture(static_cast<int>(fingerPoints.size()));
+        std::cout << fingerPoints.size() << "\n";
+    }
+
+    for (const auto& point : far_points) {
+        cv::circle(output, point, 2, cv::Scalar(0, 255, 0), -1);
+    }
     for (const auto& point : start_points) {
         cv::circle(output, point, 2, cv::Scalar(0, 0, 255), -1);
     }
 
-    for (const auto& point : kk) {
-        cv::circle(output, point, 2, cv::Scalar(0, 255, 0), -1);
-    }
+    cv::circle(output, center_bounding_rect, 5, cv::Scalar(255, 0, 0), -1);
 
-    return Gesture::No_gesture;
+    return gesture_to_return;
 }
 
-pointsVec ConvexityDefectsDetection::compressPointsByNeighborhood(const pointsVec& points,
-                                                                  const double maxDistance) const {
+void ConvexityDefectsDetection::reducePointsToMedians(pointsVec& points,
+                                                      const double maxDistance) const {
     pointsVec median_points;
 
     if (points.empty() || maxDistance <= 0)
-        return median_points;
+        return;
 
     pointsVec current_group;
     current_group.push_back(points[0]);
@@ -148,40 +179,47 @@ pointsVec ConvexityDefectsDetection::compressPointsByNeighborhood(const pointsVe
         median_points.push_back(calculateMedian(current_group));
     }
 
-    return median_points;
+    points = std::move(median_points);
+}
+
+void ConvexityDefectsDetection::compressPointsByDistance(pointsVec& points,
+                                                         const double maxDistance) const {
+    auto is_close = [maxDistance, this](const auto& point_a, const auto& point_b) {
+        return pointDistance(point_a, point_b) < maxDistance;
+    };
+
+    pointsVec compressedPoints;
+    compressedPoints.reserve(points.size());
+
+    for (const auto& point : points) {
+        if (std::none_of(begin(compressedPoints), end(compressedPoints),
+                         [&point, &is_close](const auto& existing_point) {
+                             return is_close(point, existing_point);
+                         })) {
+            compressedPoints.push_back(point);
+        }
+    }
+
+    points = std::move(compressedPoints);
 }
 
 bool ConvexityDefectsDetection::isFinger(const cv::Point& tipPoint,
                                          const cv::Point& defPoint_1,
                                          const cv::Point& defPoint_2,
                                          const cv::Point& palmCenter,
-                                         const double minPalmTipDistance) const {
-    // angle should be less than ANGLE_LIMIT_MAX and greater ANGLE_LIMIT_MIN
-    auto angle = findAngle(tipPoint, defPoint_1, defPoint_2);
-    if (angle > LIMIT_ANGLE_MAX || angle < LIMIT_ANGLE_MIN) {
-        return false;
-    }
-
-    // fingertip should not be under the two defects points
-    int diff_y_1 = tipPoint.y - defPoint_1.y;
-    int diff_y_2 = tipPoint.y - defPoint_2.y;
+                                         const double minDistance) const {
+    // Fingertip should not be under the two defects points
+    auto diff_y_1 = tipPoint.y - defPoint_1.y;
+    auto diff_y_2 = tipPoint.y - defPoint_2.y;
     if (diff_y_1 > 0 && diff_y_2 > 0) {
         return false;
     }
 
-    // Defects point should be above the palm centre point
-    int diff_palm_1 = palmCenter.y-defPoint_1.y;
-    int diff_palm_2 = palmCenter.y-defPoint_2.y;
-    if (diff_palm_1 < 0 && diff_palm_2 < 0) {
-        return false;
-    }
-
-    // Distance from palm to fingertip should be greater than minPalmTipDistance
+    // // Distance from palm to fingertip should be greater than minPalmTipDistance
     auto palmTip_distance = pointDistance(tipPoint, palmCenter);
-    if (palmTip_distance < minPalmTipDistance) {
+    if (palmTip_distance < minDistance) {
         return false;
     }
-		
 
     return true;
 }
