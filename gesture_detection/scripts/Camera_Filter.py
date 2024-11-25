@@ -3,18 +3,18 @@ import dearpygui.dearpygui as dpg
 import numpy as np
 
 def get_slider_values():
-    h_min = dpg.get_value("Hmin")
-    s_min = dpg.get_value("Smin")
-    v_min = dpg.get_value("Vmin")
-    h_max = dpg.get_value("Hmax")
-    s_max = dpg.get_value("Smax")
-    v_max = dpg.get_value("Vmax")
-    return (h_min, s_min, v_min), (h_max, s_max, v_max)
+    Y_min = dpg.get_value("Ymin")
+    Cb_min = dpg.get_value("Cbmin")
+    Cr_min = dpg.get_value("Crmin")
+    Y_max = dpg.get_value("Ymax")
+    Cb_max = dpg.get_value("Cbmax")
+    Cr_max = dpg.get_value("Crmax")
+    return (Y_min, Cb_min, Cr_min), (Y_max, Cb_max, Cr_max)
 
 if __name__ == "__main__":
    
     dpg.create_context()
-    dpg.create_viewport(title='HSV Camera Filter', width=1240, height=480, resizable = False)
+    dpg.create_viewport(title='YCbCr Camera Filter', width=1240, height=480, resizable = False)
 
     cap = cv2.VideoCapture(0)
     ret, frame = cap.read()
@@ -28,13 +28,13 @@ if __name__ == "__main__":
         print("Camera opening failure")
         exit()
 
-    with dpg.window(label="HSV sliders" , width=600, height=480, no_move=True, pos=(0, 0), no_close=True, no_collapse= True, no_resize=True):
-        dpg.add_slider_int(label="Hmin", tag="Hmin", default_value=0, max_value=179)
-        dpg.add_slider_int(label="Smin", tag="Smin", default_value=0, max_value=255)
-        dpg.add_slider_int(label="Vmin", tag="Vmin", default_value=0, max_value=255)
-        dpg.add_slider_int(label="Hmax", tag="Hmax", default_value=179, max_value=179)
-        dpg.add_slider_int(label="Smax", tag="Smax", default_value=255, max_value=255)
-        dpg.add_slider_int(label="Vmax", tag="Vmax", default_value=255, max_value=255)
+    with dpg.window(label="YCbCr sliders" , width=600, height=480, no_move=True, pos=(0, 0), no_close=True, no_collapse= True, no_resize=True):
+        dpg.add_slider_int(label="Ymin", tag="Ymin", default_value=0, max_value=255)
+        dpg.add_slider_int(label="Cbmin", tag="Cbmin", default_value=0, max_value=255)
+        dpg.add_slider_int(label="Crmin", tag="Crmin", default_value=0, max_value=255)
+        dpg.add_slider_int(label="Ymax", tag="Ymax", default_value=255, max_value=255)
+        dpg.add_slider_int(label="Cbmax", tag="Cbmax", default_value=255, max_value=255)
+        dpg.add_slider_int(label="Crmax", tag="Crmax", default_value=255, max_value=255)
 
     with dpg.texture_registry(show=False):
         dpg.add_raw_texture(frame.shape[1], frame.shape[0], texture_data, tag="texture_tag", format=dpg.mvFormat_Float_rgb)
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     with dpg.window(label="Camera View", no_move=True, pos=(600, 0), no_close=True, no_collapse= True,  no_resize=True):
         dpg.add_image("texture_tag")
 
-    kernel = np.ones((5, 5), np.uint8)  # You can adjust the kernel size
+    kernel = np.ones((6, 6), np.uint8)  # You can adjust the kernel size
 
     dpg.setup_dearpygui()
     dpg.show_viewport()
@@ -54,13 +54,13 @@ if __name__ == "__main__":
             break
 
   
-        min_hsv, max_hsv = get_slider_values()
-        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        min_YCbCr, max_YCbCr = get_slider_values()
+        YCbCr_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
 
-        mask = cv2.inRange(hsv_frame, np.array(min_hsv), np.array(max_hsv))
+        mask = cv2.inRange(YCbCr_frame, np.array(min_YCbCr), np.array(max_YCbCr))
 
         mask = cv2.erode(mask, kernel, iterations=1)  # Erosion
-        mask = cv2.dilate(mask, kernel, iterations=1)  # Dilatio
+        mask = cv2.dilate(mask, kernel, iterations=2)  # Dilatio
 
         filtered_frame = cv2.bitwise_and(frame, frame, mask=mask)
         
