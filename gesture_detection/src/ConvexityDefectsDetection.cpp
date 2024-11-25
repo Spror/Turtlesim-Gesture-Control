@@ -18,6 +18,26 @@ inline double ConvexityDefectsDetection::pointDistance(const cv::Point& a,
     return std::sqrt(std::pow(a.x - b.x, 2) + std::pow(a.y - b.y, 2));
 }
 
+std::pair<pointsVec, std::vector<int>> ConvexityDefectsDetection::calculateConvexHull(
+    const pointsVec& contour) const {
+    pointsVec hull;
+    std::vector<int> hullInts;
+
+    cv::convexHull(contour, hull, true);
+    cv::convexHull(contour, hullInts, false);
+
+    return {hull, hullInts};
+}
+
+std::vector<cv::Vec4i> ConvexityDefectsDetection::calculateConvexityDefects(
+    const pointsVec& contour,
+    const std::vector<int>& hullInts) const {
+    std::vector<cv::Vec4i> defects;
+    cv::convexityDefects(contour, hullInts, defects);
+
+    return defects;
+}
+
 Gesture ConvexityDefectsDetection::toGesture(const int fingersNum) const {
     switch (fingersNum) {
     case 1:
@@ -57,7 +77,7 @@ closestPointsArr ConvexityDefectsDetection::findClosestOnX(pointsVec points,
         return {};
     }
 
-    std::nth_element(begin(points), begin(points) + 1, end(points),
+    std::partial_sort(begin(points), begin(points) + 1, end(points),
                      [pivot, this](const auto& a, const auto& b) {
                          return pointDistanceOnX(pivot, a) <= pointDistanceOnX(pivot, b);
                      });
@@ -79,21 +99,16 @@ Gesture ConvexityDefectsDetection::gestureDetection(const cv::Mat& frame, cv::Ma
         return gesture_to_return;
     }
 
-    pointsVec hull;
-    std::vector<int> hull_ints;
-
     auto contour = handDetecotr_ptr_->getHandContour();
-
-    cv::convexHull(contour, hull, true);
-    cv::convexHull(contour, hull_ints, false);
-
-    std::vector<cv::Vec4i> defects;
+    auto [hull, hull_ints] = calculateConvexHull(contour);
 
     // At least 3 points to find defects
     if (hull_ints.size() < 3) {
         RCLCPP_ERROR(logger_, "Defects finding failure.");
         return gesture_to_return;
     }
+
+    auto defects = calculateConvexityDefects(contour, hull_ints);
 
     cv::convexityDefects(contour, hull_ints, defects);
     cv::cvtColor(output, output, cv::COLOR_GRAY2BGR);

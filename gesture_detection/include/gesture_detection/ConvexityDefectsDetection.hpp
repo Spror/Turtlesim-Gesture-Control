@@ -26,6 +26,10 @@ private:
     inline double pointDistanceOnX(const cv::Point& a, const cv::Point& b) const;
     inline double pointDistance(const cv::Point& a, const cv::Point& b) const;
 
+    std::pair<pointsVec, std::vector<int>> calculateConvexHull(const pointsVec& contour) const;
+
+    std::vector<cv::Vec4i> calculateConvexityDefects(const pointsVec& contour,
+                                                     const std::vector<int>& hullInts) const;
     Gesture toGesture(const int fingersNum) const;
 
     cv::Point calculateMedian(const pointsVec& group) const;
