@@ -6,14 +6,16 @@ cv::Mat HandDetector::detectHand(const cv::Mat& frame) {
 }
 
 cv::Mat HandDetector::imageProcess(const cv::Mat& frame) const {
-    cv::Mat hsv;
-    cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
+    cv::Mat YCrCb;
+    cv::cvtColor(frame, YCrCb, cv::COLOR_BGR2YCrCb);
 
     cv::Mat skinMask;
-    cv::inRange(hsv, lower_bound_, upper_bound_, skinMask);
+    cv::inRange(YCrCb, lower_bound_, upper_bound_, skinMask);
 
-    cv::erode(skinMask, skinMask, cv::Mat(), cv::Point(-1, -1), 2);
-    cv::dilate(skinMask, skinMask, cv::Mat(), cv::Point(-1, -1), 2);
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+
+    cv::erode(skinMask, skinMask, kernel, cv::Point(-1, -1), 1);
+    cv::dilate(skinMask, skinMask, kernel, cv::Point(-1, -1), 2);
 
     return skinMask;
 }
