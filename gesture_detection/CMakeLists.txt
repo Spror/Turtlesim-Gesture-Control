@@ -15,6 +15,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(std_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -36,7 +37,7 @@ endif()
 
 add_executable(gesturedetection src/gesture_detection.cpp src/CameraControl.cpp src/HandDetector.cpp src/ConvexityDefectsDetection.cpp)
 
-ament_target_dependencies(gesturedetection rclcpp OpenCV)
+ament_target_dependencies(gesturedetection rclcpp OpenCV std_msgs)
 
 # Install header files
 install(
