@@ -35,7 +35,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(gesturedetection src/gesture_detection.cpp src/CameraControl.cpp src/HandDetector.cpp src/ConvexityDefectsDetection.cpp)
+add_executable(gesturedetection src/main.cpp src/CameraControl.cpp src/HandDetector.cpp src/ConvexityDefectsDetection.cpp src/GestureDetection.cpp)
 
 ament_target_dependencies(gesturedetection rclcpp OpenCV std_msgs)
 
