@@ -35,9 +35,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(gesturedetection src/main.cpp src/CameraControl.cpp src/HandDetector.cpp src/ConvexityDefectsDetection.cpp src/GestureDetection.cpp)
+add_executable(gesture_detection src/main.cpp src/CameraControl.cpp src/HandDetector.cpp src/ConvexityDefectsDetection.cpp src/GestureDetection.cpp)
 
-ament_target_dependencies(gesturedetection rclcpp OpenCV std_msgs)
+ament_target_dependencies(gesture_detection rclcpp OpenCV std_msgs)
 
 # Install header files
 install(
@@ -46,7 +46,7 @@ install(
 )
 
 install(TARGETS
-  gesturedetection
+gesture_detection
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
