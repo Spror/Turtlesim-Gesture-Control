@@ -12,16 +12,15 @@ class ConvexityDefectsDetection : public GestureDetectionStrategy {
 public:
     ConvexityDefectsDetection() = delete;
     explicit ConvexityDefectsDetection(const rclcpp::Logger& logger,
-                                       cv::Scalar lower_bound,
-                                       cv::Scalar upper_bound)
+                                       std::shared_ptr<HandDetector> handDetecotr_ptr)
         : logger_{logger},
-          handDetecotr_ptr_(std::make_unique<HandDetector>(lower_bound, upper_bound)) {};
+          handDetecotr_ptr_(handDetecotr_ptr) {};
 
     Gesture gestureDetection(const cv::Mat& frame, cv::Mat& output) override;
 
 private:
     const rclcpp::Logger logger_;
-    std::unique_ptr<HandDetector> handDetecotr_ptr_;
+    std::shared_ptr<HandDetector> handDetecotr_ptr_;
     int fingers_num_ = 0;
 
     inline double pointDistanceOnX(const cv::Point& a, const cv::Point& b) const;

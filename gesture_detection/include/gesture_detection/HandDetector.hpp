@@ -5,11 +5,14 @@
 class HandDetector {
 public:
     HandDetector() = delete;
-    explicit HandDetector(cv::Scalar lower_bound, cv::Scalar upper_bound)
+    explicit HandDetector(const cv::Scalar& lower_bound, const cv::Scalar& upper_bound)
         : lower_bound_(lower_bound), upper_bound_(upper_bound), handContour_{} {};
 
     cv::Mat detectHand(const cv::Mat& frame);
     std::vector<cv::Point> getHandContour() const { return handContour_; };
+
+    void setLowerBound(const cv::Scalar& lower_bound);
+    void setUpperBound(const cv::Scalar& upper_bound);
 
 private:
     cv::Scalar lower_bound_;

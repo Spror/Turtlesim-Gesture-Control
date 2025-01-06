@@ -1,5 +1,13 @@
 #include "HandDetector.hpp"
 
+void HandDetector::setLowerBound(const cv::Scalar& lower_bound) {
+    lower_bound_ = lower_bound;
+}
+
+void HandDetector::setUpperBound(const cv::Scalar& upper_bound) {
+    upper_bound_ = upper_bound;
+}
+
 cv::Mat HandDetector::detectHand(const cv::Mat& frame) {
     auto output = imageProcess(frame);
     return extractHand(output);

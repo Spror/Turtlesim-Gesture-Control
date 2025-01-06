@@ -121,7 +121,7 @@ Gesture ConvexityDefectsDetection::toGesture(const int fingersNum) {
         return Gesture::Two;
         break;
     case 3:
-         fingers_num_ = 3;
+        fingers_num_ = 3;
         return Gesture::Three;
         break;
     case 4:
