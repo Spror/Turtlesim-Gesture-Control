@@ -34,8 +34,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(gesture_to_command  main.cpp)
+add_executable(gesture_to_command  src/main.cpp src/GestureToCommand.cpp)
 
+ament_target_dependencies(gesture_to_command rclcpp std_msgs)
 
 # Install header files
 install(
